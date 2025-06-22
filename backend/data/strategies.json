@@ -1,0 +1,69 @@
+[
+  {
+    "id": "strategy_1",
+    "name": "ORB Scalper",
+    "description": "Opening Range Breakout scalping strategy for high volatility stocks",
+    "enabled": false,
+    "signal_source": "manual",
+    "capital_allocation": 25000,
+    "symbols": [
+      "RELIANCE",
+      "TCS",
+      "HDFCBANK",
+      "INFY"
+    ],
+    "parameters": {
+      "orb_period": 15,
+      "risk_per_trade": 0.02,
+      "stop_loss_pct": 0.5,
+      "take_profit_pct": 1.0
+    },
+    "created_at": "2025-06-22T13:35:14.652827",
+    "last_updated": "2025-06-22T13:35:14.652830"
+  },
+  {
+    "id": "strategy_2",
+    "name": "Manual Trigger",
+    "description": "Manual signal-based strategy for discretionary trading",
+    "enabled": false,
+    "signal_source": "manual",
+    "capital_allocation": 50000,
+    "symbols": [
+      "NIFTY",
+      "BANKNIFTY",
+      "RELIANCE",
+      "TCS"
+    ],
+    "parameters": {
+      "risk_per_trade": 0.015,
+      "max_positions": 3,
+      "stop_loss_pct": 1.0,
+      "take_profit_pct": 2.0
+    },
+    "created_at": "2025-06-22T13:35:14.652833",
+    "last_updated": "2025-06-22T13:35:14.652834"
+  },
+  {
+    "id": "strategy_3",
+    "name": "Momentum Trader",
+    "description": "Momentum-based strategy using volume and price action",
+    "enabled": false,
+    "signal_source": "manual",
+    "capital_allocation": 30000,
+    "symbols": [
+      "HDFCBANK",
+      "ICICIBANK",
+      "AXISBANK",
+      "KOTAKBANK"
+    ],
+    "parameters": {
+      "momentum_period": 20,
+      "volume_threshold": 1.5,
+      "risk_per_trade": 0.025,
+      "stop_loss_pct": 0.8,
+      "take_profit_pct": 1.5
+    },
+    "created_at": "2025-06-22T13:35:14.652836",
+    "last_updated": "2025-06-22T13:35:14.652837"
+  }
+]
