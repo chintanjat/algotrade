@@ -83,30 +83,62 @@ class BrokerManager(LoggerMixin):
         """Fetches capital summary from the broker."""
         try:
             if isinstance(self.broker, DhanBroker):
-                fund_limits = self.broker.get_fund_limits()
-                if fund_limits and fund_limits.get('status', 'error').lower() == 'success':
+                self.logger.info("Fetching capital summary from DhanBroker.")
+                fund_limits = self.broker.get_fund_limits() # DhanBroker.get_fund_limits now logs the raw response too
+
+                # Log the fund_limits received by BrokerManager for clarity
+                self.logger.info(f"Received fund_limits from DhanBroker: {json.dumps(fund_limits)}")
+
+                if fund_limits and isinstance(fund_limits, dict) and fund_limits.get('status', '').lower() == 'success':
                     data = fund_limits.get('data', {})
+                    if not data and 'data' not in fund_limits: # If data is empty because 'data' key was missing
+                        self.logger.warning("Dhan fund_limits response status is success, but 'data' key is missing or its content is empty.")
+                    elif not data: # if 'data' key was present but content was empty (e.g. data: {})
+                         self.logger.info("Dhan fund_limits 'data' field is present but empty.")
+
+
+                    # Check for expected keys and log if missing, before using .get(key, 0)
+                    expected_keys = ['avail_balance', 'opening_balance', 'used_margin']
+                    for k in expected_keys:
+                        if k not in data:
+                            self.logger.warning(f"Key '{k}' missing in Dhan fund_limits 'data'. Will use default 0.")
+
+                    self.logger.info("P&L for Dhan in get_capital_summary is reported as 0 as it's not directly available from fund_limits API.")
                     return {
                         "total_capital": data.get('avail_balance', 0),
-                        "pnl": 0, # Dhan API doesn't provide a direct PnL field in funds summary
+                        "pnl": 0, # Explicitly stating P&L from this source is 0 for Dhan
                         "net_credit": data.get('opening_balance', 0),
                         "used_margin": data.get('used_margin', 0)
                     }
                 else:
-                    reason = fund_limits.get('remarks', 'Unknown error')
-                    self.logger.error(f"Failed to get fund limits from Dhan: {reason}")
+                    status = fund_limits.get('status', 'N/A') if isinstance(fund_limits, dict) else 'N/A (response not a dict)'
+                    reason = fund_limits.get('remarks', 'Unknown error') if isinstance(fund_limits, dict) else 'Response not a dict or remarks missing'
+                    self.logger.error(f"Failed to get fund limits from Dhan or response indicates failure. Status: '{status}', Remarks: '{reason}'. Full response: {json.dumps(fund_limits)}")
                     return {"total_capital": 0, "pnl": 0, "net_credit": 0, "used_margin": 0}
             
             # Fallback to MockBroker's implementation
-            mock_data = self.broker.get_fund_limits().get('data', {})
-            return {
-                "total_capital": mock_data.get('total_balance', 100000),
-                "pnl": 500.50, # Mock PnL
-                "net_credit": mock_data.get('avail_balance', 100000),
-                "used_margin": mock_data.get('used_margin', 5000)
-            }
+            self.logger.info(f"Current broker is {type(self.broker).__name__}, using its get_fund_limits method.")
+            # Ensure self.broker is defined, which it should be from __init__
+            if hasattr(self.broker, 'get_fund_limits'):
+                mock_fund_limits_response = self.broker.get_fund_limits()
+                mock_data = {}
+                if isinstance(mock_fund_limits_response, dict): # MockBroker returns {'status': 'success', 'data': {...}}
+                    mock_data = mock_fund_limits_response.get('data', {})
+                else: # Handle if mock broker returns something unexpected
+                    self.logger.warning(f"MockBroker get_fund_limits returned non-dict: {mock_fund_limits_response}")
+
+                return {
+                    "total_capital": mock_data.get('total_balance', 100000), # Mock specific keys
+                    "pnl": mock_data.get('mock_pnl', 500.50),
+                    "net_credit": mock_data.get('avail_balance', 100000),
+                    "used_margin": mock_data.get('used_margin', 5000)
+                }
+            else:
+                self.logger.error(f"Broker {type(self.broker).__name__} has no get_fund_limits method.")
+                return {"total_capital": 0, "pnl": 0, "net_credit": 0, "used_margin": 0}
+
         except Exception as e:
-            self.logger.error(f"Error in get_capital_summary: {e}")
+            self.logger.error(f"Critical error in get_capital_summary: {e}", exc_info=True) # exc_info=True for traceback
             return {"total_capital": 0, "pnl": 0, "net_credit": 0, "used_margin": 0}
 
     def get_open_positions(self) -> List[Dict[str, Any]]:
